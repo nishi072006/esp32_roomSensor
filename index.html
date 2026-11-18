@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>見守りダッシュボード</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--text:#1d2330;--sub:#6b7385;--ok:#1f9d55;--warn:#d9480f;--line:#e3e6ec;--bar:#3b82f6}
+@media (prefers-color-scheme:dark){:root{--bg:#12151c;--card:#1c212b;--text:#e8ebf2;--sub:#9099ad;--ok:#3ecf7a;--warn:#ff8a4c;--line:#2b3140;--bar:#6aa3ff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:16px;line-height:1.5}
+main{max-width:640px;margin:0 auto;padding:16px}
+h1{font-size:1.2rem;margin:4px 0 12px}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;border:1px solid var(--line)}
+.status{font-size:1.1rem;font-weight:600}.ok{color:var(--ok)}.warn{color:var(--warn)}
+.sub{color:var(--sub);font-size:.85rem}
+.dev{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line)}
+.dev:first-child{border-top:0}
+ul{list-style:none;margin:0;padding:0}li{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line)}
+li:first-child{border-top:0}
+input,button{font:inherit;padding:10px;border-radius:10px;border:1px solid var(--line);width:100%;margin:4px 0;background:var(--card);color:var(--text)}
+button{background:var(--bar);color:#fff;border:0;font-weight:600}
+.row{display:flex;gap:8px;align-items:center}.row button{width:auto}
+canvas{max-height:200px}
+</style>
+</head>
+<body>
+<main>
+<h1>見守りダッシュボード</h1>
+
+<div id="setup" class="card" hidden>
+  <div class="status">初期設定</div>
+  <p class="sub">この端末のブラウザにだけ保存されます（コードには含まれません）。</p>
+  <input id="url" placeholder="Apps ScriptのウェブアプリURL (…/exec)" autocomplete="off">
+  <input id="token" type="password" placeholder="トークン" autocomplete="off">
+  <button id="save">保存して表示</button>
+</div>
+
+<div id="view" hidden>
+  <div class="card"><div id="summary" class="status">読み込み中…</div><div id="updated" class="sub"></div></div>
+  <div class="card"><div class="sub">今日の検知回数</div><div id="todayCount" class="status">-</div></div>
+  <div class="card"><div class="sub">センサー別の最新状態</div><div id="devices"></div></div>
+  <div class="card"><div class="sub">1日あたりの反応回数（直近7日）</div><canvas id="chart"></canvas></div>
+  <div class="card"><div class="sub">最近の履歴</div><ul id="history"></ul></div>
+  <div class="row"><button id="reload">更新</button><button id="reset" style="background:var(--sub)">設定を消す</button></div>
+</div>
+</main>
+
+<script>
+const LABEL={door_open:'ドアが開いた',door_close:'ドアが閉じた',motion:'動きを検知',heartbeat:'生存信号',test:'テスト'};
+const $=id=>document.getElementById(id);
+let chart;
+
+function conf(){try{return JSON.parse(localStorage.getItem('mimamori')||'null')}catch(e){return null}}
+function ago(ms){
+  const m=Math.floor(ms/60000);
+  if(m<1)return 'たった今'; if(m<60)return m+'分前';
+  const h=Math.floor(m/60); if(h<48)return h+'時間前';
+  return Math.floor(h/24)+'日前';
+}
+function fmt(t){return new Date(t).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}
+function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;e.textContent=text;return e}
+
+async function load(){
+  const c=conf(); if(!c){$('setup').hidden=false;$('view').hidden=true;return}
+  $('setup').hidden=true;$('view').hidden=false;
+  try{
+    const r=await fetch(c.url+'?token='+encodeURIComponent(c.token)+'&limit=500');
+    const d=await r.json();
+    if(!d.ok)throw new Error(d.error);
+    render(d);
+  }catch(e){
+    $('summary').textContent='取得に失敗しました';$('summary').className='status warn';
+    $('updated').textContent='URL・トークン・公開設定を確認してください ('+e.message+')';
+  }
+}
+
+function render(d){
+  const now=Date.now();
+  const rows=d.rows.filter(r=>r.event!=='test');
+  const act=rows.filter(r=>r.event!=='heartbeat');
+
+  // 全体の状態
+  const last=act.length?new Date(act[act.length-1].t).getTime():null;
+  const s=$('summary');
+  if(last===null){s.textContent='まだ記録がありません';s.className='status'}
+  else{
+    const h=(now-last)/3600000;
+    s.textContent='最後の反応: '+ago(now-last);
+    s.className='status '+(h>12?'warn':'ok');
+  }
+  $('updated').textContent='更新: '+new Date().toLocaleTimeString('ja-JP');
+
+  const t0=new Date();t0.setHours(0,0,0,0);
+  $('todayCount').textContent=act.filter(r=>r.event==='motion'&&new Date(r.t)>=t0).length+' 回';
+
+
+  // センサー別
+  const dev={};
+  rows.forEach(r=>{(dev[r.device]=dev[r.device]||{}); if(r.event!=='heartbeat')dev[r.device].act=r; });
+  Object.keys(d.heartbeats||{}).forEach(k=>{(dev[k]=dev[k]||{}).hb=d.heartbeats[k]});
+  const box=$('devices');box.replaceChildren();
+  Object.keys(dev).forEach(name=>{
+    const v=dev[name],row=el('div','dev','');
+    const l=el('div','',name);
+    l.appendChild(el('div','sub',v.act?(LABEL[v.act.event]||v.act.event)+' ・ '+ago(now-new Date(v.act.t)):'反応なし'));
+    const offline=v.hb&&(now-v.hb)>3*3600000;
+    const r=el('div','sub',v.hb?(offline?'⚠ 通信なし ':'通信OK ')+ago(now-v.hb):'');
+    if(offline)r.classList.add('warn');
+    row.append(l,r);box.appendChild(row);
+  });
+
+  // グラフ（直近7日）
+  const days=[],counts=[];
+  for(let i=6;i>=0;i--){const x=new Date();x.setHours(0,0,0,0);x.setDate(x.getDate()-i);days.push(x)}
+  days.forEach(x=>{const e=new Date(x);e.setDate(e.getDate()+1);
+    counts.push(act.filter(r=>{const t=new Date(r.t);return t>=x&&t<e}).length)});
+  const labels=days.map(x=>(x.getMonth()+1)+'/'+x.getDate());
+  const color=getComputedStyle(document.documentElement).getPropertyValue('--bar').trim();
+  if(chart)chart.destroy();
+  chart=new Chart($('chart'),{type:'bar',data:{labels,datasets:[{data:counts,backgroundColor:color}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+
+  // 履歴
+  const ul=$('history');ul.replaceChildren();
+  act.slice(-30).reverse().forEach(r=>{
+    const li=document.createElement('li');
+    li.append(el('span','',r.device+' ・ '+(LABEL[r.event]||r.event)),el('span','sub',fmt(r.t)));
+    ul.appendChild(li);
+  });
+}
+
+$('save').onclick=()=>{
+  const url=$('url').value.trim(),token=$('token').value.trim();
+  if(!url||!token)return;
+  try{localStorage.setItem('mimamori',JSON.stringify({url,token}))}catch(e){alert('この環境では保存できません')}
+  load();
+};
+$('reload').onclick=load;
+$('reset').onclick=()=>{localStorage.removeItem('mimamori');load()};
+load();
+setInterval(()=>{if(!document.hidden)load()},60000);
+</script>
+</body>
+</html>
