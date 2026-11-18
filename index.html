@@ -1,146 +1,52 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>見守りダッシュボード</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-:root{--bg:#f4f5f7;--card:#fff;--text:#1d2330;--sub:#6b7385;--ok:#1f9d55;--warn:#d9480f;--line:#e3e6ec;--bar:#3b82f6}
-@media (prefers-color-scheme:dark){:root{--bg:#12151c;--card:#1c212b;--text:#e8ebf2;--sub:#9099ad;--ok:#3ecf7a;--warn:#ff8a4c;--line:#2b3140;--bar:#6aa3ff}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:16px;line-height:1.5}
-main{max-width:640px;margin:0 auto;padding:16px}
-h1{font-size:1.2rem;margin:4px 0 12px}
-.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;border:1px solid var(--line)}
-.status{font-size:1.1rem;font-weight:600}.ok{color:var(--ok)}.warn{color:var(--warn)}
-.sub{color:var(--sub);font-size:.85rem}
-.dev{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line)}
-.dev:first-child{border-top:0}
-ul{list-style:none;margin:0;padding:0}li{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line)}
-li:first-child{border-top:0}
-input,button{font:inherit;padding:10px;border-radius:10px;border:1px solid var(--line);width:100%;margin:4px 0;background:var(--card);color:var(--text)}
-button{background:var(--bar);color:#fff;border:0;font-weight:600}
-.row{display:flex;gap:8px;align-items:center}.row button{width:auto}
-canvas{max-height:200px}
+:root{--bg:#f3f5f8;--card:#fff;--text:#202938;--sub:#697586;--ok:#16834a;--warn:#c2410c;--line:#e3e8ef;--bar:#3978df;--soft:#eaf1ff}
+@media(prefers-color-scheme:dark){:root{--bg:#111722;--card:#1c2634;--text:#edf2f8;--sub:#a4afbf;--ok:#55d68a;--warn:#ff9b69;--line:#344153;--bar:#78a9ff;--soft:#263954}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:15px;line-height:1.55}
+main{width:min(100%,720px);margin:auto;padding:16px 14px 32px}h1{font-size:1.25rem;margin:4px 0 18px}.section-title{font-size:.92rem;color:var(--sub);font-weight:650;margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;margin:0 0 14px;box-shadow:0 2px 8px #15243a08}
+.metric{padding:2px 2px 12px;margin-bottom:10px;border-bottom:1px solid var(--line)}.metric:last-child{border:0;margin-bottom:0;padding-bottom:0}.metric-label{font-size:.88rem;color:var(--sub)}.metric-value{font-size:1.45rem;font-weight:750;letter-spacing:.01em;margin-top:2px}.ok{color:var(--ok)}.warn{color:var(--warn)}.sub{font-size:.82rem;color:var(--sub)}
+input,button{font:inherit;border-radius:10px;border:1px solid var(--line);padding:10px 12px;background:var(--card);color:var(--text)}button{cursor:pointer}.primary{background:var(--bar);border-color:var(--bar);color:white;font-weight:650}.toolbar{display:flex;gap:8px;align-items:center}.toolbar>*{min-width:0}.toolbar button{flex:1}.date-row{display:flex;align-items:center;gap:8px;margin-bottom:12px}.date-row input{flex:1;min-width:0}.chart-wrap{height:235px;position:relative}.hour-chart-wrap{height:260px;position:relative}.hint{background:var(--soft);border-radius:10px;padding:9px 11px;margin:10px 0;font-size:.82rem;color:var(--sub)}
+ul{list-style:none;padding:0;margin:0}li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}li:first-child{border-top:0}.history-main{min-width:0}.history-time{white-space:nowrap;font-variant-numeric:tabular-nums}.dev{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}.dev:first-child{border-top:0}.pill{font-size:.78rem;padding:3px 9px;border-radius:99px;background:var(--soft);white-space:nowrap}.pill.ok{color:var(--ok)}.pill.warn{color:var(--warn)}canvas{max-width:100%}
+@media(min-width:600px){main{padding:24px 20px 40px}.chart-wrap{height:260px}.hour-chart-wrap{height:300px}}
 </style>
-</head>
-<body>
-<main>
+</head><body><main>
 <h1>見守りダッシュボード</h1>
-
-<div id="setup" class="card" hidden>
-  <div class="status">初期設定</div>
-  <p class="sub">この端末のブラウザにだけ保存されます（コードには含まれません）。</p>
-  <input id="url" placeholder="Apps ScriptのウェブアプリURL (…/exec)" autocomplete="off">
-  <input id="token" type="password" placeholder="トークン" autocomplete="off">
-  <button id="save">保存して表示</button>
-</div>
-
+<div id="setup" class="card" hidden><div class="section-title">初期設定</div><p class="sub">このブラウザに設定を保存します。</p><input id="url" placeholder="Apps ScriptのウェブアプリURL（…/exec）" autocomplete="off" style="width:100%;margin-bottom:8px"><input id="token" type="password" placeholder="トークン" autocomplete="off" style="width:100%;margin-bottom:8px"><button id="save" class="primary" style="width:100%">保存して表示</button></div>
 <div id="view" hidden>
-  <div class="card"><div id="summary" class="status">読み込み中…</div><div id="updated" class="sub"></div></div>
-  <div class="card"><div class="sub">今日の検知回数</div><div id="todayCount" class="status">-</div></div>
-  <div class="card"><div class="sub">センサー別の最新状態</div><div id="devices"></div></div>
-  <div class="card"><div class="sub">1日あたりの反応回数（直近7日）</div><canvas id="chart"></canvas></div>
-  <div class="card"><div class="sub">最近の履歴</div><ul id="history"></ul></div>
-  <div class="row"><button id="reload">更新</button><button id="reset" style="background:var(--sub)">設定を消す</button></div>
-</div>
-</main>
-
+  <section class="metric"><div class="metric-label">最後の反応</div><div id="summary" class="metric-value">読み込み中…</div><div id="updated" class="sub"></div></section>
+  <section class="metric"><div class="metric-label">今日の検知回数</div><div id="todayCount" class="metric-value">-</div></section>
+  <section class="card"><h2 class="section-title">1日あたりの反応回数（直近7日）</h2><div class="chart-wrap"><canvas id="weekChart"></canvas></div></section>
+  <section class="card"><h2 class="section-title">日付ごとの検知ログ</h2><div class="date-row"><input id="selectedDate" type="date"><button id="todayBtn">今日</button></div><div class="sub" id="daySummary">日付を選択すると時間帯別の回数を表示します。</div><div class="hour-chart-wrap"><canvas id="hourChart"></canvas></div><div class="hint">棒グラフの時間帯をタップすると、その1時間の詳細な検知時刻を下に表示します。</div><h3 class="section-title" id="hourTitle">時間帯の詳細</h3><ul id="hourDetails"><li class="sub">棒グラフの時間帯を選択してください。</li></ul></section>
+  <section class="card"><h2 class="section-title">最新の履歴</h2><ul id="history"></ul></section>
+  <section class="card"><h2 class="section-title">センサーの通信状態</h2><div class="sub" style="margin-bottom:8px">省電力のため、検知ログがある場合のみ通信します。ここではセンサーの最終ログ送信時刻を表示します。</div><div id="devices"></div></section>
+  <div class="toolbar"><button id="reload" class="primary">更新</button><button id="reset">設定を消す</button></div>
+</div></main>
 <script>
 const LABEL={door_open:'ドアが開いた',door_close:'ドアが閉じた',motion:'動きを検知',heartbeat:'生存信号',test:'テスト'};
-const $=id=>document.getElementById(id);
-let chart;
-
+const $=id=>document.getElementById(id);let weekChart=null,hourChart=null,allRows=[];
 function conf(){try{return JSON.parse(localStorage.getItem('mimamori')||'null')}catch(e){return null}}
-function ago(ms){
-  const m=Math.floor(ms/60000);
-  if(m<1)return 'たった今'; if(m<60)return m+'分前';
-  const h=Math.floor(m/60); if(h<48)return h+'時間前';
-  return Math.floor(h/24)+'日前';
+function ago(ms){if(ms<60000)return'たった今';const m=Math.floor(ms/60000);if(m<60)return m+'分前';const h=Math.floor(m/60);if(h<48)return h+'時間前';return Math.floor(h/24)+'日前'}
+function fmt(t){return new Date(t).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
+function localDateKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+async function load(){const c=conf();if(!c){$('setup').hidden=false;$('view').hidden=true;return}$('setup').hidden=true;$('view').hidden=false;
+ try{const r=await fetch(c.url+'?token='+encodeURIComponent(c.token)+'&limit=5000',{cache:'no-store'});const d=await r.json();if(!d.ok)throw Error(d.error||'取得エラー');render(d)}catch(e){$('summary').textContent='取得に失敗しました';$('summary').className='metric-value warn';$('updated').textContent='URL・トークン・公開設定を確認してください（'+e.message+'）'}}
+function render(d){const now=Date.now();allRows=(d.rows||[]).filter(r=>r.event!=='test'&&r.event!=='heartbeat').sort((a,b)=>new Date(a.t)-new Date(b.t));
+ const last=allRows.length?new Date(allRows[allRows.length-1].t).getTime():null;$('summary').textContent=last===null?'まだ記録がありません':ago(now-last);$('summary').className='metric-value '+(last!==null&&(now-last)>12*3600000?'warn':'ok');$('updated').textContent='最終更新: '+new Date().toLocaleTimeString('ja-JP');
+ const today=localDateKey(new Date());$('todayCount').textContent=allRows.filter(r=>localDateKey(new Date(r.t))===today&&r.event==='motion').length+' 回';
+ drawWeek();if(!$('selectedDate').value)$('selectedDate').value=today;drawDay($('selectedDate').value);
+ const ul=$('history');ul.replaceChildren();const recent=allRows.slice(-30).reverse();if(!recent.length)ul.append(el('li','sub','まだ履歴がありません'));recent.forEach(r=>{const li=document.createElement('li'),left=el('div','history-main',r.device+' ・ '+(LABEL[r.event]||r.event));li.append(left,el('span','sub history-time',fmt(r.t)));ul.append(li)});
+ const dev={};(d.rows||[]).forEach(r=>{if(r.event==='test')return;dev[r.device]=dev[r.device]||{};if(r.event!=='heartbeat')dev[r.device].act=r});Object.keys(d.heartbeats||{}).forEach(k=>{dev[k]=dev[k]||{};dev[k].lastUpload=d.heartbeats[k]});
+ const box=$('devices');box.replaceChildren();const names=Object.keys(dev);if(!names.length)box.append(el('div','sub','センサーからの通信記録がありません'));names.forEach(name=>{const v=dev[name],row=el('div','dev',''),left=el('div','',name),right=document.createElement('div');left.append(el('div','sub',v.act?(LABEL[v.act.event]||v.act.event)+' ・ '+ago(now-new Date(v.act.t)):'検知履歴なし'));if(v.lastUpload){right.append(el('span','pill ok','最終送信 '+ago(now-v.lastUpload)))}else right.append(el('span','pill','送信記録なし'));row.append(left,right);box.append(row)});
 }
-function fmt(t){return new Date(t).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}
-function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;e.textContent=text;return e}
-
-async function load(){
-  const c=conf(); if(!c){$('setup').hidden=false;$('view').hidden=true;return}
-  $('setup').hidden=true;$('view').hidden=false;
-  try{
-    const r=await fetch(c.url+'?token='+encodeURIComponent(c.token)+'&limit=500');
-    const d=await r.json();
-    if(!d.ok)throw new Error(d.error);
-    render(d);
-  }catch(e){
-    $('summary').textContent='取得に失敗しました';$('summary').className='status warn';
-    $('updated').textContent='URL・トークン・公開設定を確認してください ('+e.message+')';
-  }
-}
-
-function render(d){
-  const now=Date.now();
-  const rows=d.rows.filter(r=>r.event!=='test');
-  const act=rows.filter(r=>r.event!=='heartbeat');
-
-  // 全体の状態
-  const last=act.length?new Date(act[act.length-1].t).getTime():null;
-  const s=$('summary');
-  if(last===null){s.textContent='まだ記録がありません';s.className='status'}
-  else{
-    const h=(now-last)/3600000;
-    s.textContent='最後の反応: '+ago(now-last);
-    s.className='status '+(h>12?'warn':'ok');
-  }
-  $('updated').textContent='更新: '+new Date().toLocaleTimeString('ja-JP');
-
-  const t0=new Date();t0.setHours(0,0,0,0);
-  $('todayCount').textContent=act.filter(r=>r.event==='motion'&&new Date(r.t)>=t0).length+' 回';
-
-
-  // センサー別
-  const dev={};
-  rows.forEach(r=>{(dev[r.device]=dev[r.device]||{}); if(r.event!=='heartbeat')dev[r.device].act=r; });
-  Object.keys(d.heartbeats||{}).forEach(k=>{(dev[k]=dev[k]||{}).hb=d.heartbeats[k]});
-  const box=$('devices');box.replaceChildren();
-  Object.keys(dev).forEach(name=>{
-    const v=dev[name],row=el('div','dev','');
-    const l=el('div','',name);
-    l.appendChild(el('div','sub',v.act?(LABEL[v.act.event]||v.act.event)+' ・ '+ago(now-new Date(v.act.t)):'反応なし'));
-    const offline=v.hb&&(now-v.hb)>3*3600000;
-    const r=el('div','sub',v.hb?(offline?'⚠ 通信なし ':'通信OK ')+ago(now-v.hb):'');
-    if(offline)r.classList.add('warn');
-    row.append(l,r);box.appendChild(row);
-  });
-
-  // グラフ（直近7日）
-  const days=[],counts=[];
-  for(let i=6;i>=0;i--){const x=new Date();x.setHours(0,0,0,0);x.setDate(x.getDate()-i);days.push(x)}
-  days.forEach(x=>{const e=new Date(x);e.setDate(e.getDate()+1);
-    counts.push(act.filter(r=>{const t=new Date(r.t);return t>=x&&t<e}).length)});
-  const labels=days.map(x=>(x.getMonth()+1)+'/'+x.getDate());
-  const color=getComputedStyle(document.documentElement).getPropertyValue('--bar').trim();
-  if(chart)chart.destroy();
-  chart=new Chart($('chart'),{type:'bar',data:{labels,datasets:[{data:counts,backgroundColor:color}]},
-    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
-
-  // 履歴
-  const ul=$('history');ul.replaceChildren();
-  act.slice(-30).reverse().forEach(r=>{
-    const li=document.createElement('li');
-    li.append(el('span','',r.device+' ・ '+(LABEL[r.event]||r.event)),el('span','sub',fmt(r.t)));
-    ul.appendChild(li);
-  });
-}
-
-$('save').onclick=()=>{
-  const url=$('url').value.trim(),token=$('token').value.trim();
-  if(!url||!token)return;
-  try{localStorage.setItem('mimamori',JSON.stringify({url,token}))}catch(e){alert('この環境では保存できません')}
-  load();
-};
-$('reload').onclick=load;
-$('reset').onclick=()=>{localStorage.removeItem('mimamori');load()};
-load();
-setInterval(()=>{if(!document.hidden)load()},60000);
-</script>
-</body>
-</html>
+function drawWeek(){const days=[],counts=[];for(let i=6;i>=0;i--){const x=new Date();x.setHours(0,0,0,0);x.setDate(x.getDate()-i);days.push(x)}days.forEach(x=>{const end=new Date(x);end.setDate(end.getDate()+1);counts.push(allRows.filter(r=>{const t=new Date(r.t);return t>=x&&t<end}).length)});const color=getComputedStyle(document.documentElement).getPropertyValue('--bar').trim();if(weekChart)weekChart.destroy();weekChart=new Chart($('weekChart'),{type:'bar',data:{labels:days.map(x=>(x.getMonth()+1)+'/'+x.getDate()),datasets:[{data:counts,backgroundColor:color,borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}}})}
+function drawDay(key){if(!key)return;const dayRows=allRows.filter(r=>localDateKey(new Date(r.t))===key),counts=Array(24).fill(0);dayRows.forEach(r=>counts[new Date(r.t).getHours()]++);$('daySummary').textContent=key+' の検知 '+dayRows.length+' 件';const color=getComputedStyle(document.documentElement).getPropertyValue('--bar').trim();if(hourChart)hourChart.destroy();hourChart=new Chart($('hourChart'),{type:'bar',data:{labels:Array.from({length:24},(_,i)=>i+'h'),datasets:[{data:counts,backgroundColor:color,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,onClick:(evt,elements)=>{if(elements.length)showHour(key,elements[0].index)},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' 回'}}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false},ticks:{autoSkip:false,maxRotation:0,minRotation:0,font:{size:10}}}}}});$('hourTitle').textContent='時間帯の詳細';$('hourDetails').replaceChildren(el('li','sub','棒グラフの時間帯を選択してください。'))}
+function showHour(key,hour){const start=new Date(key+'T00:00:00');start.setHours(hour);const end=new Date(start);end.setHours(hour+1);const rows=allRows.filter(r=>{const t=new Date(r.t);return t>=start&&t<end}).sort((a,b)=>new Date(a.t)-new Date(b.t));$('hourTitle').textContent=hour+'時台の詳細（'+rows.length+'件）';const ul=$('hourDetails');ul.replaceChildren();if(!rows.length){ul.append(el('li','sub','この時間帯の検知はありません'));return}rows.forEach(r=>{const li=document.createElement('li');li.append(el('span','history-main',r.device+' ・ '+(LABEL[r.event]||r.event)),el('span','sub history-time',new Date(r.t).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit'})));ul.append(li)})}
+$('save').onclick=()=>{const url=$('url').value.trim(),token=$('token').value.trim();if(!url||!token)return;localStorage.setItem('mimamori',JSON.stringify({url,token}));load()};$('reload').onclick=load;$('reset').onclick=()=>{localStorage.removeItem('mimamori');load()};$('selectedDate').addEventListener('change',e=>drawDay(e.target.value));$('todayBtn').onclick=()=>{$('selectedDate').value=localDateKey(new Date());drawDay($('selectedDate').value)};load();setInterval(()=>{if(!document.hidden)load()},60000);
+</script></body></html>
