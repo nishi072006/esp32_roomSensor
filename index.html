@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>見守りダッシュボード</title>
+<title>Sensor log</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 :root{--bg:#f3f5f8;--card:#fff;--text:#202938;--sub:#697586;--ok:#16834a;--warn:#c2410c;--line:#e3e8ef;--bar:#3978df;--soft:#eaf1ff}
@@ -16,7 +16,7 @@ ul{list-style:none;padding:0;margin:0}li{display:flex;justify-content:space-betw
 @media(min-width:600px){main{padding:24px 20px 40px}.chart-wrap{height:260px}.hour-chart-wrap{height:300px}}
 </style>
 </head><body><main>
-<h1>見守りダッシュボード</h1>
+<h1>Sensor log</h1>
 <div id="setup" class="card" hidden><div class="section-title">初期設定</div><p class="sub">このブラウザに設定を保存します。</p><input id="url" placeholder="Apps ScriptのウェブアプリURL（…/exec）" autocomplete="off" style="width:100%;margin-bottom:8px"><input id="token" type="password" placeholder="トークン" autocomplete="off" style="width:100%;margin-bottom:8px"><button id="save" class="primary" style="width:100%">保存して表示</button></div>
 <div id="view" hidden>
   <section class="metric"><div class="metric-label">最後の反応</div><div id="summary" class="metric-value">読み込み中…</div><div id="updated" class="sub"></div></section>
@@ -24,8 +24,8 @@ ul{list-style:none;padding:0;margin:0}li{display:flex;justify-content:space-betw
   <section class="card"><h2 class="section-title">1日あたりの反応回数（直近7日）</h2><div class="chart-wrap"><canvas id="weekChart"></canvas></div></section>
   <section class="card"><h2 class="section-title">日付ごとの検知ログ</h2><div class="date-row"><input id="selectedDate" type="date"><button id="todayBtn">今日</button></div><div class="sub" id="daySummary">日付を選択すると時間帯別の回数を表示します。</div><div class="hour-chart-wrap"><canvas id="hourChart"></canvas></div><div class="hint">棒グラフの時間帯をタップすると、その1時間の詳細な検知時刻を下に表示します。</div><h3 class="section-title" id="hourTitle">時間帯の詳細</h3><ul id="hourDetails"><li class="sub">棒グラフの時間帯を選択してください。</li></ul></section>
   <section class="card"><h2 class="section-title">最新の履歴</h2><ul id="history"></ul></section>
-  <section class="card"><h2 class="section-title">センサーの通信状態</h2><div class="sub" style="margin-bottom:8px">省電力のため、検知ログがある場合のみ通信します。ここではセンサーの最終ログ送信時刻を表示します。</div><div id="devices"></div></section>
-  <div class="toolbar"><button id="reload" class="primary">更新</button><button id="reset">設定を消す</button></div>
+  <section class="card"><h2 class="section-title">センサーの通信状態</h2><div class="sub" style="margin-bottom:8px">センサーの最終ログ送信時刻を表示</div><div id="devices"></div></section>
+  <div class="toolbar"><button id="reload" class="primary">ページを更新</button><button id="reset">設定の編集・削除</button></div>
 </div></main>
 <script>
 const LABEL={door_open:'ドアが開いた',door_close:'ドアが閉じた',motion:'動きを検知',heartbeat:'生存信号',test:'テスト'};
